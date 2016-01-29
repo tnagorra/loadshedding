@@ -13,18 +13,17 @@ class ConnectError(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
-        return repr(self.value)
-
-def dd(txt):
-    print(txt)
-    exit(1)
+        return self.value
 
 def scrapRoutine():
     # Get content from the url
     url = 'http://myrepublica.com/load-shedding.html'
-    response = requests.get(url)
+    try:
+        response = requests.get(url)
+    except:
+        raise ConnectError("Connection Error")
     if response.status_code != 200:
-        raise ConnectError
+        raise ConnectError("Error code: "+str(response.status_code))
     # Regex to match time
     twentyfour = re.compile(r"24:00")
     timerange = re.compile(r"[0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2}")
@@ -63,11 +62,12 @@ def loadRoutine(force, freq=1):
             routines = scrapRoutine()
             with open(fname, 'w') as outfile:
                 json.dump(routines, outfile)
-        except ConnectError:
+        except ConnectError as e:
             if not os.path.exists(fname):
-                dd("Connection Error.")
-            # print("*")
-            with open(fname, "r") as datafile:
+                print(e)
+                exit(1)
+            # print('*', end='')
+            with open(fname, 'r') as datafile:
                 routines = json.load(datafile)
     return routines
 
@@ -163,7 +163,8 @@ def main():
     # PrettyPrinter(indent=4).pprint(routines)
 
     if args.group < 1 or args.group > len(routines):
-        dd("Group value out of bounds.")
+        print("Group value out of bounds.")
+        exit(1)
 
     if args.more:
         op = statusAll(routines, args.group)
