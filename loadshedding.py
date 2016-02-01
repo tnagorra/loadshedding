@@ -15,7 +15,8 @@ class ConnectError(Exception):
     def __str__(self):
         return self.value
 
-def scrapRoutine():
+""" Scrap the routine from certain url """
+def _scrapRoutine():
     # Get content from the url
     url = 'http://myrepublica.com/load-shedding.html'
     try:
@@ -47,20 +48,22 @@ def scrapRoutine():
         routines.append(routine)
     return routines
 
-def age(fyle):
+""" Find out how old the file is """
+def _age(fyle):
     created = os.path.getctime(fyle)
     today = time.time()
     return (today-created)/(60*60*24) #in days
 
+""" Load the routine from file or scrap from the url """
 def loadRoutine(force, freq=1):
     dest = os.path.expanduser("~")
     fname = dest+'/.loadshedding.routine'
-    if os.path.exists(fname) and age(fname) <= 2 and not force:
+    if os.path.exists(fname) and _age(fname) <= 2 and not force:
         with open(fname) as datafile:
             routines = json.load(datafile)
     else:
         try:
-            routines = scrapRoutine()
+            routines = _scrapRoutine()
             with open(fname, 'w') as outfile:
                 json.dump(routines, outfile)
         except ConnectError as e:
@@ -72,8 +75,8 @@ def loadRoutine(force, freq=1):
                 routines = json.load(datafile)
     return routines
 
-
-def prettify(tym):
+""" _prettify output for 'relative' option """
+def _prettify(tym):
     op = ''
     time = int(tym.total_seconds())
     tuples = [('s',60, 5*60), ('m', 60, 5*60), ('h', 24, 3*24),
@@ -85,9 +88,11 @@ def prettify(tym):
         time //= t[1]
     return op
 
-def prettify2(tym):
+""" _prettify output for 'effective' option """
+def _prettify2(tym):
     return tym.strftime("%H:%M")
 
+""" Show the status for 'relative' and 'effective' option """
 def status(routines, group, relative):
     now = datetime.datetime.now()
     week = now.isoweekday()%7+1
@@ -96,10 +101,10 @@ def status(routines, group, relative):
         start = now.replace(hour=rng[0][0], minute=rng[0][1], second=0)
         end = now.replace(hour=rng[1][0], minute=rng[1][1], second=0)
         if now < start:
-            z = prettify(start-now) if relative else prettify2(start)
+            z = _prettify(start-now) if relative else _prettify2(start)
             return z+" Y"
         elif now >= start and now <= end:
-            z = prettify(end-now) if relative else prettify2(end)
+            z = _prettify(end-now) if relative else _prettify2(end)
             return z+" N"
     else:
         # Iterate over a week
@@ -113,12 +118,13 @@ def status(routines, group, relative):
             rng = routine[0]
             start = now.replace(day=now.day+x, hour=rng[0][0],
                                 minute=rng[0][1], second=0)
-            z = prettify(start-now) if relative else (prettify2(start)
-                                                      +" "+str(x))
+            z = _prettify(start-now) if relative else (_prettify2(start)
+                                                       +" "+str(x))
             return z+" Y"
         return "Never"+" Y"
 
-def statusAll(routines, group):
+""" Show the status for 'more' option """
+def statusMore(routines, group):
     now = datetime.datetime.now()
     routine = routines[group-1]
     week = now.isoweekday()%7+1
@@ -142,8 +148,8 @@ def statusAll(routines, group):
 
 
 def parse():
-    parser = argparse.ArgumentParser("loadshedding",
-                                     description="When can you charge?")
+    parser = argparse.ArgumentParser("loadshedding", description=
+                                     "Display loadshedding schedule.")
     parser.add_argument('-f', '--force', dest='force', help='force update',
                         action='store_const', const=True)
     parser.add_argument('-g', '--group',  dest='group', metavar='N',
@@ -169,9 +175,8 @@ def main():
     if args.group < 1 or args.group > len(routines):
         print("Group value out of bounds.")
         exit(1)
-
     if args.more:
-        op = statusAll(routines, args.group)
+        op = statusMore(routines, args.group)
     else:
         op = status(routines, args.group, args.relative)
 
