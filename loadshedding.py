@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-import re
-import sys, os
-import time
-from datetime import datetime
-import json
-import argparse
+
+# Dependencies
+# pip install requests beautifulsoup4
+# Installation
+# cp loadshedding.py /usr/local/bin/loadshedding
+
+import os, sys, json, argparse, re, time, datetime
 import requests
 from bs4 import BeautifulSoup
-from pprint import PrettyPrinter
 
 class ConnectError(Exception):
     def __init__(self, value):
@@ -53,7 +53,8 @@ def age(fyle):
     return (today-created)/(60*60*24) #in days
 
 def loadRoutine(force, freq=1):
-    fname = os.path.split(os.path.abspath(__file__))[0]+'/routine.cache'
+    dest = os.path.expanduser("~")
+    fname = dest+'/.loadshedding.routine'
     if os.path.exists(fname) and age(fname) <= 2 and not force:
         with open(fname) as datafile:
             routines = json.load(datafile)
@@ -88,7 +89,7 @@ def prettify2(tym):
     return tym.strftime("%H:%M")
 
 def status(routines, group, relative):
-    now = datetime.now()
+    now = datetime.datetime.now()
     week = now.isoweekday()%7+1
     routine = routines[group-1][week-1]
     for rng in routine:
@@ -118,12 +119,16 @@ def status(routines, group, relative):
         return "Never"+" Y"
 
 def statusAll(routines, group):
-    now = datetime.now()
+    now = datetime.datetime.now()
     routine = routines[group-1]
+    week = now.isoweekday()%7+1
 
     op = ''
     for i, day in enumerate(routine):
-        op += str(i+1)+"\t"
+        op += str(i+1)
+        if i==week:
+            op += '*'
+        op += '\t'
         for rng in day:
             # Just to get good formatting, else now isn't required here
             start = now.replace(hour=rng[0][0],
@@ -160,7 +165,6 @@ def parse():
 def main():
     args = parse()
     routines = loadRoutine(args.force)
-    # PrettyPrinter(indent=4).pprint(routines)
 
     if args.group < 1 or args.group > len(routines):
         print("Group value out of bounds.")
@@ -168,7 +172,8 @@ def main():
 
     if args.more:
         op = statusAll(routines, args.group)
-    op = status(routines, args.group, args.relative)
+    else:
+        op = status(routines, args.group, args.relative)
 
     print(op)
     return 0
