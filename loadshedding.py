@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-# Dependencies
-# pip install requests beautifulsoup4
-# Installation
-# cp loadshedding.py /usr/local/bin/loadshedding
-
 import os, sys, json, argparse, re, time, datetime
 import requests
 from bs4 import BeautifulSoup
@@ -26,7 +21,6 @@ def _scrapRoutine():
     if response.status_code != 200:
         raise ConnectError("Error code: "+str(response.status_code))
     # Regex to match time
-    twentyfour = re.compile(r"24:00")
     timerange = re.compile(r"[0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2}")
     # Get a parser for html
     extractor = BeautifulSoup(response.content, "html.parser")
@@ -39,7 +33,6 @@ def _scrapRoutine():
         td_list = tr.find_all('td')
         for td in td_list:
             text = td.get_text()
-            text = twentyfour.sub('23:59', text)
             time_list = [[[int(y) for y in z.split(':')]
                 for z in x.split('-')]
                 for x in timerange.findall(text)]
@@ -92,14 +85,26 @@ def _prettify(tym):
 def _prettify2(tym):
     return tym.strftime("%H:%M")
 
+def _sanitize(rng):
+    if rng[0]==24:
+        return {"hour":23, "minute":59, "second":59}
+    else:
+        return {"hour":rng[0], "minute":rng[1], "second":0}
+
 """ Show the status for 'relative' and 'effective' option """
 def status(routines, group, relative):
+
     now = datetime.datetime.now()
     week = now.isoweekday()%7+1
     routine = routines[group-1][week-1]
     for rng in routine:
-        start = now.replace(hour=rng[0][0], minute=rng[0][1], second=0)
-        end = now.replace(hour=rng[1][0], minute=rng[1][1], second=0)
+        start = now.replace(**_sanitize(rng[0]))
+        end = now.replace(**_sanitize(rng[1]))
+
+        # If end is smaller than start, then it is in another day
+        if end < start:
+            end = end.replace(day=end.day+1)
+
         if now < start:
             z = _prettify(start-now) if relative else _prettify2(start)
             return z+" Y"
@@ -107,7 +112,7 @@ def status(routines, group, relative):
             z = _prettify(end-now) if relative else _prettify2(end)
             return z+" N"
     else:
-        # Iterate over a week
+        # Iterate over the week
         x = 0
         while x < 7:
             x += 1
@@ -116,8 +121,9 @@ def status(routines, group, relative):
             if not routine:
                 continue
             rng = routine[0]
-            start = now.replace(day=now.day+x, hour=rng[0][0],
-                                minute=rng[0][1], second=0)
+
+            start = now.replace(**_sanitize(rng[0]).replace(day=now.day+x))
+
             z = _prettify(start-now) if relative else (_prettify2(start)
                                                        +" "+str(x))
             return z+" Y"
@@ -132,15 +138,13 @@ def statusMore(routines, group):
     op = ''
     for i, day in enumerate(routine):
         op += str(i+1)
-        if i==week:
+        if (i+1)==week:
             op += '*'
         op += '\t'
         for rng in day:
             # Just to get good formatting, else now isn't required here
-            start = now.replace(hour=rng[0][0],
-                                minute=rng[0][1])
-            end = now.replace(hour=rng[1][0],
-                                minute=rng[1][1])
+            start = now.replace(**_sanitize(rng[0]))
+            end = now.replace(**_sanitize(rng[1]))
             op += start.strftime("%H:%M")+'-'
             op += end.strftime("%H:%M")+'\t'
         op += '\n'

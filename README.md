@@ -2,7 +2,7 @@
 
 A simple yet clean script that displays loadshedding schedule.
 
-# Usage
+## Usage
 
 ```bash
 loadshedding [-h] [-f] -g N (-e | -r | -m)
@@ -16,7 +16,7 @@ optional arguments:
   -m, --more       show all time
 ```
 
-# Example:
+## Example
 
 Show time left for group 2
 
