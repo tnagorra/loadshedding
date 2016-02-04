@@ -5,7 +5,7 @@ A simple yet clean script that displays loadshedding schedule.
 ## Usage
 
 ```bash
-loadshedding [-h] [-f] -g N (-e | -r | -m)
+loadshedding [-h] [-f] -g N [-e | -r | -m]
 
 optional arguments:
   -h, --help       show this help message and exit
