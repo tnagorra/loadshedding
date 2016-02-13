@@ -84,6 +84,8 @@ def status(routines, group, relative):
             if tmp and (len(t)<=2 or time < t[2]):
                 op = str(tmp)+t[0]+op
             time //= t[1]
+        if not op:
+            op = '0s'
         return op
 
     """ _prettify output for 'effective' option """
