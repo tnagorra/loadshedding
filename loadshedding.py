@@ -72,7 +72,7 @@ def loadRoutine(force, freq=1):
     return routines
 
 
-""" Show the status for 'relative' and 'effective' option """
+""" Show the status for 'relative' and 'absolute' option """
 def status(routines, group, relative):
 
     """ _prettify output for 'relative' option """
@@ -92,7 +92,7 @@ def status(routines, group, relative):
             op = '0s'
         return op
 
-    """ _prettify output for 'effective' option """
+    """ _prettify output for 'absolute' option """
     def _prettify2(tym):
         return tym.strftime("%H:%M")
 
@@ -137,8 +137,8 @@ def status(routines, group, relative):
             return z+" Y"
         return "Never"+" Y"
 
-""" Show the status for 'more' option """
-def statusMore(routines, group):
+""" Show the status for 'schedule' option """
+def statusSchedule(routines, group):
     now = datetime.datetime.now()
     routine = routines[group-1]
     week = now.isoweekday()%7+1
@@ -153,6 +153,8 @@ def statusMore(routines, group):
             op += '{:02d}:{:02d}'.format(rng[1][0], rng[1][1])
             op += ' '
         op += '\n'
+    # remove last new line
+    op = op[:-1]
     return op
 
 
@@ -165,14 +167,14 @@ def parse():
                         help='force schedule update', type=int, required=True)
 
     optype = parser.add_mutually_exclusive_group(required=False)
-    optype.add_argument('-e', '--effective', dest='relative',
-                        help='show effective time',
+    optype.add_argument('-a', '--absolute', dest='relative',
+                        help='show absolute time',
                         action='store_const', const=False)
     optype.add_argument('-r', '--relative', dest='relative',
                         help='show remaining time',
                         action='store_const', const=True)
-    optype.add_argument('-m', '--more', dest='more',
-                        help='show all time',
+    optype.add_argument('-s', '--schedule', dest='schedule',
+                        help='show time schedule',
                         action='store_const', const=True)
 
     return parser.parse_args()
@@ -184,8 +186,8 @@ def main():
     if args.group < 1 or args.group > len(routines):
         print("Group value out of bounds.")
         exit(1)
-    if args.more:
-        op = statusMore(routines, args.group)
+    if args.schedule:
+        op = statusSchedule(routines, args.group)
     else:
         op = status(routines, args.group, args.relative)
 
