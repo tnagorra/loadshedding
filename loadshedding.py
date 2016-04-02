@@ -21,7 +21,7 @@ def _scrapRoutine():
     if response.status_code != 200:
         raise ConnectError("Error code: "+str(response.status_code))
     # Regex to match time
-    timerange = re.compile(r"[0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2}")
+    timerange = re.compile(r"[0-9]{1,2}:[0-9]{2}-[0-9]{2}:[0-9]{2}")
     # Get a parser for html
     extractor = BeautifulSoup(response.content, "html.parser")
     # Iterate over tr and td
@@ -33,9 +33,11 @@ def _scrapRoutine():
         td_list = tr.find_all('td')
         for td in td_list:
             text = td.get_text()
+            # print(timerange.findall(text))
             time_list = [[[int(y) for y in z.split(':')]
                 for z in x.split('-')]
                 for x in timerange.findall(text)]
+            # print(time_list)
             if time_list:
                 routine.append(time_list)
         routines.append(routine)
@@ -75,15 +77,17 @@ def status(routines, group, relative):
 
     """ _prettify output for 'relative' option """
     def _prettify(tym):
-        op = ''
         time = int(tym.total_seconds())
-        tuples = [('s',60, 5*60), ('m', 60, 5*60), ('h', 24, 3*24),
-                  ('d', 365, 50*365), ('y', 9999)]
+        tuples = [('s',60), ('m', 60), ('h', 24),
+                  ('d', 365), ('y', 9999)]
+        output = []
         for t in tuples:
             tmp = time % t[1]
-            if tmp and (len(t)<=2 or time < t[2]):
-                op = str(tmp)+t[0]+op
+            if tmp:
+                output.insert(0, str(tmp)+t[0])
             time //= t[1]
+        # Get first two elements only
+        op = ''.join(output[0:min(len(output), 2)])
         if not op:
             op = '0s'
         return op
