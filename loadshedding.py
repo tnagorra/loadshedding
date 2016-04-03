@@ -13,7 +13,7 @@ class ConnectError(Exception):
 """ Scrap the routine from certain url """
 def _scrapRoutine():
     # Get content from the url
-    url = 'http://myrepublica.com/load-shedding.html'
+    url = 'http://battigayo.com/schedule'
     try:
         response = requests.get(url)
     except:
@@ -25,19 +25,14 @@ def _scrapRoutine():
     # Get a parser for html
     extractor = BeautifulSoup(response.content, "html.parser")
     # Iterate over tr and td
+
     routines = []
-    routine_table = extractor.select('table')[0] # Select first table
-    routine_data = routine_table.find_all('tr')[1:] # Skip first row
-    for tr in routine_data:
+    for daywise in extractor.find_all('li', class_="clearfix" )[1:]:
         routine = []
-        td_list = tr.find_all('td')
-        for td in td_list:
-            text = td.get_text()
-            # print(timerange.findall(text))
+        for hourwise in daywise.find_all('div'):
             time_list = [[[int(y) for y in z.split(':')]
                 for z in x.split('-')]
-                for x in timerange.findall(text)]
-            # print(time_list)
+                for x in timerange.findall(hourwise.get_text())]
             if time_list:
                 routine.append(time_list)
         routines.append(routine)
