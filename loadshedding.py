@@ -17,9 +17,10 @@ def _scrapRoutine():
     try:
         response = requests.get(url)
     except:
-        raise ConnectError("Connection Error")
+        raise ConnectError("ERROR Connection Problem")
+
     if response.status_code != 200:
-        raise ConnectError("Error code: "+str(response.status_code))
+        raise ConnectError("ERROR code: "+str(response.status_code))
     # Regex to match time
     timerange = re.compile(r"[0-9]{1,2}:[0-9]{2}-[0-9]{2}:[0-9]{2}")
     # Get a parser for html
@@ -36,6 +37,12 @@ def _scrapRoutine():
             if time_list:
                 routine.append(time_list)
         routines.append(routine)
+
+    # In cases where a response is given but not essentially the routine page
+    # Ex: Subisu login page
+    if not routines:
+        raise ConnectError("ERROR Couldn't scrap routine")
+
     return routines
 
 """ Load the routine from file or scrap from the url """
@@ -57,6 +64,7 @@ def loadRoutine(force, freq=1):
             routines = _scrapRoutine()
             with open(fname, 'w') as outfile:
                 json.dump(routines, outfile)
+
         except ConnectError as e:
             if not os.path.exists(fname):
                 print(e)
@@ -97,16 +105,19 @@ def status(routines, group, relative):
         else:
             return {"hour":rng[0], "minute":rng[1], "second":0}
 
+    # current time
     now = datetime.datetime.now()
+
+    # now = datetime.datetime(2016, 4, 28, 20, 51)
+
     week = now.isoweekday()%7+1
     routine = routines[group-1][week-1]
     for rng in routine:
         start = now.replace(**_sanitize(rng[0]))
         end = now.replace(**_sanitize(rng[1]))
-
         # If end is smaller than start, then it is in another day
         if end < start:
-            end = end.replace(day=end.day+1)
+            end += datetime.timedelta(days=1)
 
         if now < start:
             z = _prettify(start-now) if relative else _prettify2(start)
@@ -114,6 +125,7 @@ def status(routines, group, relative):
         elif now >= start and now <= end:
             z = _prettify(end-now) if relative else _prettify2(end)
             return z+" N"
+        # what do we do here?
     else:
         # Iterate over the week
         x = 0
@@ -125,8 +137,10 @@ def status(routines, group, relative):
                 continue
             rng = routine[0]
 
-            start = now.replace(**_sanitize(rng[0])).replace(day=now.day+x)
+            start = now.replace(**_sanitize(rng[0]))
+            start += datetime.timedelta(days=1)
 
+            # in prettify2, x represents the time after certain days
             z = _prettify(start-now) if relative else (_prettify2(start)
                                                        +" "+str(x))
             return z+" Y"
@@ -179,7 +193,7 @@ def main():
     routines = loadRoutine(args.force)
 
     if args.group < 1 or args.group > len(routines):
-        print("Group value out of bounds.")
+        print("ERROR Group value out of bounds.")
         exit(1)
     if args.schedule:
         op = statusSchedule(routines, args.group)
